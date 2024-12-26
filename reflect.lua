@@ -242,7 +242,7 @@ end, --error("TODO: CTA_QUAL") end,
   end,
   function(a, refct)
     refct.transparent = true
-    refct.attributes = {}
+    refct.attributes = refct.attributes or {}
     refct.attributes.subtype = refct.typeid
     refct.typeid = a.typeid
   end,
