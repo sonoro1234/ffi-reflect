@@ -48,11 +48,25 @@ typeinfo = typeinfo or function(id)
 end
 
 local function memptr(gcobj)
-  return tonumber(tostring(gcobj):match"%x*$", 16)
+  return tonumber(tostring(gcobj):match"0x%x*$")
 end
 
 init_CTState = function()
   -- Relevant minimal definitions from lj_ctype.h
+  ffi.cdef[[
+    typedef __declspec(align(8)) union FPRCBArg { double d; float f[2]; } FPRCBArg;
+    typedef __declspec(align(8)) struct CCallback {
+    FPRCBArg fpr[8];	/* Arguments/results in FPRs. */
+    intptr_t gpr[8];	/* Arguments/results in GPRs. */
+    intptr_t *stack;		/* Pointer to arguments on stack. */
+    void *mcode;			/* Machine code for callback func. pointers. */
+    uint16_t *cbid;		/* Callback type table. */
+    uint32_t sizeid;			/* Size of callback type table. */
+    uint32_t topid;			/* Highest unused callback type table slot. */
+    uint32_t slot;			/* Current callback slot. */
+  } CCallback;
+  ]]
+  if not ffi.abi"gc64" then
   ffi.cdef [[
     typedef struct CType {
       uint32_t info;
@@ -68,11 +82,34 @@ init_CTState = function()
       uint32_t sizetab;
       void *L;
       void *g;
-      void *finalizer;
       void *miscmap;
+      CCallback cb;
+      uint16_t hash[128];  /* Hash anchors for C type table. */
     } CTState;
   ]]
-
+  else --gc64
+    ffi.cdef [[
+    typedef struct CType {
+      uint32_t info;
+      uint32_t size;
+      uint16_t sib;
+      uint16_t next;
+      uint64_t name;
+    } CType;
+    
+    typedef struct CTState {
+      CType *tab;
+      uint32_t top;
+      uint32_t sizetab;
+      void *L;
+      void *g;
+      void *miscmap;
+      CCallback cb;
+      uint16_t hash[128];  /* Hash anchors for C type table. */
+    } CTState;
+  ]]
+  end
+  
   -- Acquire a pointer to this Lua universe's CTState
   local co = coroutine.create(function(f, ...) return f(...) end)
   local uintgc = ffi.abi"gc64" and "uint64_t" or "uint32_t"
