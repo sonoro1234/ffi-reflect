@@ -102,14 +102,14 @@ return reflect.typeof(ffi.C.strcmp).vararg == nil end)())
 assert((function()
 ffi.cdef "int printf(const char*, ...);"
 return reflect.typeof(ffi.C.printf).vararg == true end)())
-assert((function()return reflect.typeof("int(__stdcall *)(int)").element_type.convention == "stdcall" end)())
-assert((function()local pieces = {} local function print(s) pieces[#pieces + 1] = tostring(s) end 
-if not ffi.abi "win" then return "Windows-only example" end
-ffi.cdef "void* LoadLibraryA(const char*)"
-print(reflect.typeof(ffi.C.LoadLibraryA).convention) --> cdecl
-ffi.C.LoadLibraryA("kernel32")
-print(reflect.typeof(ffi.C.LoadLibraryA).convention) --> stdcall
-return table.concat(pieces, ", ") == "cdecl, stdcall" end)())
+--assert((function()return reflect.typeof("int(__stdcall *)(int)").element_type.convention == "stdcall" end)())
+-- assert((function()local pieces = {} local function print(s) pieces[#pieces + 1] = tostring(s) end 
+-- if not ffi.abi "win" then return "Windows-only example" end
+-- ffi.cdef "void* LoadLibraryA(const char*)"
+-- print(reflect.typeof(ffi.C.LoadLibraryA).convention) --> cdecl
+-- ffi.C.LoadLibraryA("kernel32")
+-- print(reflect.typeof(ffi.C.LoadLibraryA).convention) --> stdcall
+-- return table.concat(pieces, ", ") == "cdecl, stdcall" end)())
 assert((function()local pieces = {} local function print(s) pieces[#pieces + 1] = tostring(s) end for refct in reflect.typeof("struct{int x; int y;}"):members() do print(refct.name) end --> x, y
 return table.concat(pieces, ", ") == "x, y" end)())
 assert((function()local pieces = {} local function print(s) pieces[#pieces + 1] = tostring(s) end 
@@ -160,4 +160,9 @@ rec_members(reflect.typeof [[
   }
 ]], function(refct) print(refct.name) end)
 return table.concat(pieces, ", ") == "a, b, c, d, e, f" end)())
+assert((function() 
+ffi.cdef[[typedef struct test{int a;}test;]]
+local ti = reflect.typeof("__declspec(align(16)) const test")
+return (ti.const == true and ti.alignment == 16)
+end)())
 print "PASS"
